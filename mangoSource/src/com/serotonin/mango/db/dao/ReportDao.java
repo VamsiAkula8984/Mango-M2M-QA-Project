@@ -18,6 +18,7 @@
  */
 package com.serotonin.mango.db.dao;
 
+import java.io.PrintWriter;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -25,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 
+import org.apache.commons.logging.Log;
 import org.springframework.jdbc.core.RowCallbackHandler;
 
 import com.serotonin.ShouldNeverHappenException;
@@ -44,6 +46,7 @@ import com.serotonin.mango.rt.event.type.EventType;
 import com.serotonin.mango.view.text.TextRenderer;
 import com.serotonin.mango.vo.DataPointVO;
 import com.serotonin.mango.vo.UserComment;
+import com.serotonin.mango.vo.report.ReportCsvStreamer;
 import com.serotonin.mango.vo.report.ReportDataStreamHandler;
 import com.serotonin.mango.vo.report.ReportDataValue;
 import com.serotonin.mango.vo.report.ReportInstance;
@@ -54,11 +57,13 @@ import com.serotonin.util.SerializationHelper;
 import com.serotonin.util.StringUtils;
 import com.serotonin.web.i18n.I18NUtils;
 import com.serotonin.web.taglib.Functions;
+import org.apache.commons.logging.LogFactory;
 
 /**
  * @author Matthew Lohbihler
  */
 public class ReportDao extends BaseDao {
+    private final Log log = LogFactory.getLog(ReportDao.class);
     //
     //
     // Report Templates
@@ -416,8 +421,68 @@ public class ReportDao extends BaseDao {
             + "from reportInstanceData rd "
             + "  left join reportInstanceDataAnnotations rda on "
             + "      rd.pointValueId=rda.pointValueId and rd.reportInstancePointId=rda.reportInstancePointId ";
-
     public void reportInstanceData(int instanceId, final ReportDataStreamHandler handler) {
+                // Retrieve point information.
+                List<ReportPointInfo> pointInfos = query(REPORT_INSTANCE_POINT_SELECT + "where reportInstanceId=?",
+                        new Object[] { instanceId }, new GenericRowMapper<ReportPointInfo>() {
+                            public ReportPointInfo mapRow(ResultSet rs, int rowNum) throws SQLException {
+                                ReportPointInfo rp = new ReportPointInfo();
+                                rp.setReportPointId(rs.getInt(1));
+                                rp.setDeviceName(rs.getString(2));
+                                rp.setPointName(rs.getString(3));
+                                rp.setDataType(rs.getInt(4));
+                                String startValue = rs.getString(5);
+                                if (startValue != null)
+                                    rp.setStartValue(MangoValue.stringToValue(startValue, rp.getDataType()));
+                                rp.setTextRenderer((TextRenderer) SerializationHelper.readObject(rs.getBlob(6)
+                                        .getBinaryStream()));
+                                rp.setColour(rs.getString(7));
+                                rp.setConsolidatedChart(charToBool(rs.getString(8)));
+                                return rp;
+                            }
+                        });
+        
+                final ReportDataValue rdv = new ReportDataValue();
+                for (final ReportPointInfo point : pointInfos) {
+                    handler.startPoint(point);
+        
+                    rdv.setReportPointId(point.getReportPointId());
+                    final int dataType = point.getDataType();
+                    ejt.query(REPORT_INSTANCE_DATA_SELECT + "where rd.reportInstancePointId=? order by rd.ts",
+                            new Object[] { point.getReportPointId() }, new RowCallbackHandler() {
+                                public void processRow(ResultSet rs) throws SQLException {
+                                    switch (dataType) {
+                                    case (DataTypes.NUMERIC):
+                                        rdv.setValue(new NumericValue(rs.getDouble(1)));
+                                        break;
+                                    case (DataTypes.BINARY):
+                                        rdv.setValue(new BinaryValue(rs.getDouble(1) == 1));
+                                        break;
+                                    case (DataTypes.MULTISTATE):
+                                        rdv.setValue(new MultistateValue(rs.getInt(1)));
+                                        break;
+                                    case (DataTypes.ALPHANUMERIC):
+                                        rdv.setValue(new AlphanumericValue(rs.getString(2)));
+                                        if (rs.wasNull())
+                                            rdv.setValue(new AlphanumericValue(rs.getString(3)));
+                                        break;
+                                    case (DataTypes.IMAGE):
+                                        rdv.setValue(new ImageValue(Integer.parseInt(rs.getString(2)), rs.getInt(1)));
+                                        break;
+                                    default:
+                                        rdv.setValue(null);
+                                    }
+        
+                                    rdv.setTime(rs.getLong(4));
+                                    rdv.setAnnotation(rs.getString(5));
+        
+                                    handler.pointData(rdv);
+                                }
+                            });
+                }
+                handler.done();
+            }
+    public void reportInstanceDataHorizontal(ResourceBundle bundle, int instanceId, final ReportCsvStreamer handler) {
         // Retrieve point information.
         List<ReportPointInfo> pointInfos = query(REPORT_INSTANCE_POINT_SELECT + "where reportInstanceId=?",
                 new Object[] { instanceId }, new GenericRowMapper<ReportPointInfo>() {
@@ -437,16 +502,23 @@ public class ReportDao extends BaseDao {
                         return rp;
                     }
                 });
+        
+        handler.addHeader(bundle,pointInfos.size()); //writing headers for each point
+        List<List<ReportDataValue>> rdv_list_list = new ArrayList<>();// creating a list of lists to store all the report data values
 
-        final ReportDataValue rdv = new ReportDataValue();
-        for (final ReportPointInfo point : pointInfos) {
-            handler.startPoint(point);
+        int max = 0;
 
-            rdv.setReportPointId(point.getReportPointId());
+        for (final ReportPointInfo point : pointInfos) { // For every group
+            List<ReportDataValue> rdv_list = new ArrayList<>();
+
+            final int pointId = point.getReportPointId();
             final int dataType = point.getDataType();
             ejt.query(REPORT_INSTANCE_DATA_SELECT + "where rd.reportInstancePointId=? order by rd.ts",
                     new Object[] { point.getReportPointId() }, new RowCallbackHandler() {
                         public void processRow(ResultSet rs) throws SQLException {
+                            
+                            ReportDataValue rdv = new ReportDataValue();
+                            rdv.setReportPointId(pointId);
                             switch (dataType) {
                             case (DataTypes.NUMERIC):
                                 rdv.setValue(new NumericValue(rs.getDouble(1)));
@@ -472,10 +544,29 @@ public class ReportDao extends BaseDao {
                             rdv.setTime(rs.getLong(4));
                             rdv.setAnnotation(rs.getString(5));
 
-                            handler.pointData(rdv);
+                            rdv_list.add(rdv);//add rdv to list rdv_list
                         }
-                    });
+                    }
+            );
+            
+            rdv_list_list.add(rdv_list); //add rdv_list to the list of lists
+            max = Math.max(max, rdv_list.size()); // calculating max to ensure that all the null values are also written
         }
+
+        List<ReportDataValue> rdvh; 
+        for(int i=0; i<max; i++) {
+            rdvh = new ArrayList<>();
+            for(List<ReportDataValue> hor: rdv_list_list){
+                if(hor.size()>i) {
+                    rdvh.add(hor.get(i)); 
+                }
+                else{
+                    rdvh.add(null);
+                }
+            }
+            handler.pointDataHorizontal(rdvh, pointInfos); // traversing through the list of lists such that each time a row of all the points are written at a time
+        }
+        
         handler.done();
     }
 
