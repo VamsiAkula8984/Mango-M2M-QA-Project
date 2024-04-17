@@ -274,18 +274,12 @@ public class LandingPageDwr extends BaseDwr {
         setEvents(pointVO, user, model);
         if (pointValue != null && pointValue.getValue() instanceof ImageValue) {
             // // Text renderers don't help here. Create a thumbnail.
-            // setImageText(request, state, pointVO, model, pointValue);
         }
         else
             setPrettyText(state, pointVO, model, pointValue);
 
         if (pointVO.isSettable())
             setChange(pointVO, state, point, request, model, user);
-
-        // if (state.getValue() != null)
-        //     setChart(pointVO, state, request, model);
-        // setMessages(state, request, "watchListMessages", model);
-
         return state;
     }
 
