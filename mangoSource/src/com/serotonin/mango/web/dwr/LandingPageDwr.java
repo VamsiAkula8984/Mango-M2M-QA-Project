@@ -289,59 +289,6 @@ public class LandingPageDwr extends BaseDwr {
         return state;
     }
 
-    // private void setImageText(HttpServletRequest request, WatchListState state, DataPointVO pointVO,
-    //         Map<String, Object> model, PointValueTime pointValue) {
-    //     if (!ObjectUtils.isEqual(pointVO.lastValue(), pointValue)) {
-    //         state.setValue(generateContent(request, "imageValueThumbnail.jsp", model));
-    //         if (pointValue != null)
-    //             state.setTime(Functions.getTime(pointValue));
-    //         pointVO.updateLastValue(pointValue);
-    //     }
-    // }
-
-    /**
-     * Method for creating image charts of the points on the watch list.
-     */
-    // public String getImageChartData(int[] pointIds, int fromYear, int fromMonth, int fromDay, int fromHour,
-    //         int fromMinute, int fromSecond, boolean fromNone, int toYear, int toMonth, int toDay, int toHour,
-    //         int toMinute, int toSecond, boolean toNone, int width, int height) {
-    //     DateTime from = createDateTime(fromYear, fromMonth, fromDay, fromHour, fromMinute, fromSecond, fromNone);
-    //     DateTime to = createDateTime(toYear, toMonth, toDay, toHour, toMinute, toSecond, toNone);
-
-    //     StringBuilder htmlData = new StringBuilder();
-    //     htmlData.append("<img src=\"achart/ft_");
-    //     htmlData.append(System.currentTimeMillis());
-    //     htmlData.append('_');
-    //     htmlData.append(fromNone ? -1 : from.getMillis());
-    //     htmlData.append('_');
-    //     htmlData.append(toNone ? -1 : to.getMillis());
-
-    //     boolean pointsFound = false;
-    //     // Add the list of points that are numeric.
-    //     List<DataPointVO> watchList = Common.getUser().getWatchList().getPointList();
-    //     for (DataPointVO dp : watchList) {
-    //         int dtid = dp.getPointLocator().getDataTypeId();
-    //         if ((dtid == DataTypes.NUMERIC || dtid == DataTypes.BINARY || dtid == DataTypes.MULTISTATE)
-    //                 && ArrayUtils.contains(pointIds, dp.getId())) {
-    //             pointsFound = true;
-    //             htmlData.append('_');
-    //             htmlData.append(dp.getId());
-    //         }
-    //     }
-
-    //     if (!pointsFound)
-    //         // There are no chartable points, so abort the image creation.
-    //         return getMessage("watchlist.noChartables");
-
-    //     htmlData.append(".png?w=");
-    //     htmlData.append(width);
-    //     htmlData.append("&h=");
-    //     htmlData.append(height);
-    //     htmlData.append("\" alt=\"" + getMessage("common.imageChart") + "\"/>");
-
-    //     return htmlData.toString();
-    // }
-
     private Map<String, Object> getWatchListData(User user, WatchList watchList) {
         Map<String, Object> data = new HashMap<String, Object>();
         if (watchList == null)
@@ -428,13 +375,4 @@ public class LandingPageDwr extends BaseDwr {
         return watchList.getWatchListUsers();
     }
 
-    // @MethodFilter
-    // public void getChartData(int[] pointIds, int fromYear, int fromMonth, int fromDay, int fromHour, int fromMinute,
-    //         int fromSecond, boolean fromNone, int toYear, int toMonth, int toDay, int toHour, int toMinute,
-    //         int toSecond, boolean toNone) {
-    //     DateTime from = createDateTime(fromYear, fromMonth, fromDay, fromHour, fromMinute, fromSecond, fromNone);
-    //     DateTime to = createDateTime(toYear, toMonth, toDay, toHour, toMinute, toSecond, toNone);
-    //     DataExportDefinition def = new DataExportDefinition(pointIds, from, to);
-    //     Common.getUser().setDataExportDefinition(def);
-    // }
 }

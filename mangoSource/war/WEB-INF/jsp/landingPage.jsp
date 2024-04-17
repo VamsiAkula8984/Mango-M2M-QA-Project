@@ -391,13 +391,7 @@
               }
           }
       }
-      
-      
-      //
-      // Image chart
-      //
-
-      
+            
       //
       // Create report
       function createReport() {
