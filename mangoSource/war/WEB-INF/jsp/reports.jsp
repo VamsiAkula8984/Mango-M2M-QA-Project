@@ -261,7 +261,7 @@
         var item = getElement(reportPointsArray, pointId, "pointId");
         if(title.length>64){window.alert("Title must not exceed 64 characters!");
           return;}
-        if(!title.match("[a-zA-Z0-9_]*")){window.alert("Title must only contain alphanumeric or _ characters");
+        if(!title.match("^[a-zA-Z0-9_]*$")){window.alert("Title must only contain alphanumeric or _ characters");
           return;}
         else{
           if (item)
