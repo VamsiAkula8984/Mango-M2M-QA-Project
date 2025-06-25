@@ -1,5 +1,5 @@
 # github-moodle-lab
 
-This repository is the base repository that students will fork and use for the Github lab.
+This repository constitutes three different feature additions in Mango M2M software.
 
-It contains a single PHP file Hello.php. Students will find problems in this file and write pull requests for the solution during the lab.
+The entire work can be seen in various reports added in the repo. This project is part of coursework in Software Design and Development course at Clarkson university during Spring 2024.
